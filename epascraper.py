@@ -2,21 +2,27 @@ import requests
 import json
 import time
 import pprint as pp
+from requests_html import AsyncHTMLSession
+
+
+#session = requests.Session()
+#csrf=session.get("https://foiaonline.gov/foiaonline/action/public/search/quickSearch")
+
+#r=session.get('https://foiaonline.gov/foiaonline/api/search/advancedSearch')
+#print(session.cookies)
+#print(session.headers)
 
 cookies = {
     'foiaonline_session_cookie': 'e992f0d76d004d769432e3a156a15330|85fca2fcb504287ead389d608d097bb1',
-    'JSESSIONID': '16421F0C8B783B4FBB8F4885C005B9AB',
+    'JSESSIONID': 'DACDBE999301DBD0C58FF3DEBD95754D',
 }
 
 headers = {
     'authority': 'foiaonline.gov',
     'accept': 'application/json, text/javascript, */*; q=0.01',
     'accept-language': 'en-US,en;q=0.9',
-    # Already added when you pass json=
-    # 'content-type': 'application/json',
     # Requests sorts cookies= alphabetically
-    # 'cookie': 'foiaonline_session_cookie=e992f0d76d004d769432e3a156a15330|85fca2fcb504287ead389d608d097bb1; JSESSIONID=16421F0C8B783B4FBB8F4885C005B9AB',
-    'origin': 'https://foiaonline.gov',
+    # 'cookie': 'foiaonline_session_cookie=e992f0d76d004d769432e3a156a15330|85fca2fcb504287ead389d608d097bb1; JSESSIONID=DACDBE999301DBD0C58FF3DEBD95754D',
     'referer': 'https://foiaonline.gov/foiaonline/action/public/search/advancedSearch',
     'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24", "Google Chrome";v="116"',
     'sec-ch-ua-mobile': '?0',
@@ -25,7 +31,7 @@ headers = {
     'sec-fetch-mode': 'cors',
     'sec-fetch-site': 'same-origin',
     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
-    'x-csrf-token': 'ee74b464-8f38-4648-b89c-f36a14765bde',
+    'x-csrf-token': 'e615c91f-d46b-4cbe-ba32-2bc07fa0ac56',
     'x-foia-page-url': 'https://foiaonline.gov/foiaonline/action/public/search/advancedSearch',
     'x-requested-with': 'XMLHttpRequest',
 }
@@ -50,14 +56,26 @@ json_data = {
     'type': [],
     'draw': 2,
     'lastItemDisplayed': 0,
-    'numberOfRecords': 200,
+    '_': 200,
     'toOrganizationIncludeSubAgencies': True,
 }
 
+asession = AsyncHTMLSession()
+#r = session.get('https://foiaonline.gov/foiaonline/api/search/advancedSearch')
+
+
 try:
-    response = requests.post('https://foiaonline.gov/foiaonline/api/search/advancedSearch', cookies=cookies,
+    response = await asession.post('https://foiaonline.gov/foiaonline/api/search/advancedSearch', cookies=cookies, 
                              headers=headers, json=json_data)
     response_dict = response.json()
+    time.sleep(5)
+    files_to_grab = session.response = session.get('https://foiaonline.gov/foiaonline/action/public/submissionDetails?trackingNumber=EPA-2023-006415&type=Request', cookies=cookies, headers=headers)
+    time.sleep(15)
+    files_to_grab.html.render()
+    time.sleep(15)
+    print(files_to_grab.html.absolute_links)
+    time.sleep(10)
+    exit()
 except Exception as e:
     print('ERROR:')
     print(e)
