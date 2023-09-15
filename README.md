@@ -21,8 +21,89 @@ I use the FOIA disposition (Partial Grant/Full Grant/Appealed etc) as a proxy fo
 ### File Download
 ## TODO
 
-To grab the files, you can easily make a request to find the released records (i.e. open https://foiaonline.gov/foiaonline/action/public/submissionDetails?trackingNumber=EPA-2023-006415&type=Request_) but that doesn't get you everything. Instead, the website loads the file links in a jquery table with download links (i.e. https://foiaonline.gov/foiaonline/api/request/downloadFile/Interim%20Policy%20on%20Annual%20Leave%20Accrual%20for%20Non-Federal%20or%20Uniformed%20Service%20Work%20Experience.pdf/ca743032-e7f7-4cbc-9e8b-9d4f47971903?x-csrf-token=ee74b464-8f38-4648-b89c-f36a14765bde_). The csrf token we have already from the setup task so in theory we can just wget -c " " the file. 
+To grab the files, you can easily make a request to find the released records. First, you need to get the filenames and record ID's from the API: 
 
-But I don't know how to deal with the jquery table and how to grab the URL to pull the files from without the file names. 
+```
+import requests
 
-Alternatively, can we mess with _https://foiaonline.gov/foiaonline/api/request/downloadFile_ endpoint to have it tell us the filename? 
+cookies = {
+    'foiaonline_session_cookie': 'e992f0d76d004d769432e3a156a15330|85fca2fcb504287ead389d608d097bb1',
+    'JSESSIONID': '18659215515E9B06D1D519E5D0A10E68',
+}
+
+headers = {
+    'authority': 'foiaonline.gov',
+    'accept': 'application/json, text/javascript, */*; q=0.01',
+    'accept-language': 'en-US,en;q=0.9',
+    # Already added when you pass json=
+    # 'content-type': 'application/json',
+    # Requests sorts cookies= alphabetically
+    # 'cookie': 'foiaonline_session_cookie=e992f0d76d004d769432e3a156a15330|85fca2fcb504287ead389d608d097bb1; JSESSIONID=18659215515E9B06D1D519E5D0A10E68',
+    'origin': 'https://foiaonline.gov',
+    'referer': 'https://foiaonline.gov/foiaonline/action/public/submissionDetails?trackingNumber=EPA-2023-006415&type=Request',
+    'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24", "Google Chrome";v="116"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"macOS"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin',
+    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+    'x-csrf-token': 'de702477-c60c-4b32-baf2-37eb61aef28b',
+    'x-foia-page-url': 'https://foiaonline.gov/foiaonline/action/public/submissionDetails?trackingNumber=EPA-2023-006415&type=Request',
+    'x-requested-with': 'XMLHttpRequest',
+}
+
+json_data = {
+    'numberOfRecords': 25,
+    'lastItemDisplayed': 0,
+    'draw': 1,
+}
+
+response = requests.post('https://foiaonline.gov/foiaonline/api/request/publicRecords/EPA-2023-006415/Request', cookies=cookies, headers=headers, json=json_data)
+```
+
+which returns that data:
+
+```
+{
+  "draw" : 1,
+  "recordsTotal" : 1,
+  "recordsFiltered" : 1,
+  "data" : [ {
+    "trackingNumber" : "EPA-2023-006415",
+    "title" : "Interim Policy on Annual Leave Accrual for Non-Federal or Uniformed Service Work Experience",
+    "fileName" : "Interim Policy on Annual Leave Accrual for Non-Federal or Uniformed Service Work Experience.pdf",
+    "releaseType" : "UR - Unredacted - Releasable to the General Public",
+    "exemptions" : null,
+    "ex3statutes" : [ "N/A" ],
+    "ex5subtypes" : [ "N/A" ],
+    "keywords" : null,
+    "uploadedBy" : "Matthew Waits",
+    "uploadedByEmail" : "Waits.Matthew@epa.gov",
+    "createdDate" : "09/06/2023 02:14 PM",
+    "lastModifiedDate" : "09/06/2023 10:33 PM",
+    "fileType" : "Adobe PDF Document",
+    "fileFormat" : null,
+    "author" : null,
+    "addedBy" : "cbf58edf-15ec-4a7f-82bf-dff23d0f78b1",
+    "size" : "0.2159",
+    "recordReleaseDate" : "09/06/2023 10:33 PM",
+    "retentionPeriod" : "6 Year",
+    "frequentlyRequested" : null,
+    "type" : "Record",
+    "recordId" : "ca743032-e7f7-4cbc-9e8b-9d4f47971903",
+    "referredToNonparticipatingAgency" : "No",
+    "referredFromOtherAgency" : "No",
+    "referredType" : null,
+    "recordType" : null,
+    "taskId" : null,
+    "isPlaceholder" : false
+  } ],
+  "dataMap" : null
+}```
+
+Then you can use the _fileName_ (HTML encoded) and the _recordId_ and a CSRF token to request the file. Here is the download URL:
+
+`
+https://foiaonline.gov/foiaonline/api/request/downloadFile/Interim%20Policy%20on%20Annual%20Leave%20Accrual%20for%20Non-Federal%20or%20Uniformed%20Service%20Work%20Experience.pdf/ca743032-e7f7-4cbc-9e8b-9d4f47971903?x-csrf-token=de702477-c60c-4b32-baf2-37eb61aef28b
+`
